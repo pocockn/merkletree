@@ -24,7 +24,7 @@ type MerkleTree struct {
 	Root         *Node
 	merkleRoot   []byte
 	Leafs        []*Node
-	hashStrategy func() hash.Hash
+	hashStrategy hash.Hash
 }
 
 //Node represents a node, root, or leaf in the tree. It stores pointers to its immediate
@@ -56,7 +56,7 @@ func (n *Node) verifyNode() ([]byte, error) {
 		return nil, err
 	}
 
-	h := n.Tree.hashStrategy()
+	h := n.Tree.hashStrategy
 	if _, err := h.Write(append(leftBytes, rightBytes...)); err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (n *Node) calculateNodeHash() ([]byte, error) {
 		return n.C.CalculateHash()
 	}
 
-	h := n.Tree.hashStrategy()
+	h := n.Tree.hashStrategy
 	if _, err := h.Write(append(n.Left.Hash, n.Right.Hash...)); err != nil {
 		return nil, err
 	}
@@ -80,26 +80,8 @@ func (n *Node) calculateNodeHash() ([]byte, error) {
 
 //NewTree creates a new Merkle Tree using the content cs.
 func NewTree(cs []Content) (*MerkleTree, error) {
-	var defaultHashStrategy = sha256.New
 	t := &MerkleTree{
-		hashStrategy: defaultHashStrategy,
-	}
-	root, leafs, err := buildWithContent(cs, t)
-	if err != nil {
-		return nil, err
-	}
-	t.Root = root
-	t.Leafs = leafs
-	t.merkleRoot = root.Hash
-	return t, nil
-}
-
-//NewTreeWithHashStrategy creates a new Merkle Tree using the content cs using the provided hash
-//strategy. Note that the hash type used in the type that implements the Content interface must
-//match the hash type profided to the tree.
-func NewTreeWithHashStrategy(cs []Content, hashStrategy func() hash.Hash) (*MerkleTree, error) {
-	t := &MerkleTree{
-		hashStrategy: hashStrategy,
+		hashStrategy: sha256.New(),
 	}
 	root, leafs, err := buildWithContent(cs, t)
 	if err != nil {
@@ -184,7 +166,7 @@ func buildWithContent(cs []Content, t *MerkleTree) (*Node, []*Node, error) {
 func buildIntermediate(nl []*Node, t *MerkleTree) (*Node, error) {
 	var nodes []*Node
 	for i := 0; i < len(nl); i += 2 {
-		h := t.hashStrategy()
+		h := t.hashStrategy
 		var left, right int = i, i + 1
 		if i+1 == len(nl) {
 			right = i
@@ -272,7 +254,7 @@ func (m *MerkleTree) VerifyContent(content Content) (bool, error) {
 		if ok {
 			currentParent := l.Parent
 			for currentParent != nil {
-				h := m.hashStrategy()
+				h := m.hashStrategy
 				rightBytes, err := currentParent.Right.calculateNodeHash()
 				if err != nil {
 					return false, err
